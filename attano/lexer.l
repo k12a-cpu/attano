@@ -65,4 +65,8 @@ primitive               { return PRIMITIVE; }
 [a-zA-Z_][a-zA-Z0-9_]*  { attano_yylval.str = strdup(attano_yytext);
                           return IDENT; }
 
+.                       { char msg[24];
+                          snprintf(msg, 24, "invalid character '%c'", attano_yytext[0]);
+                          attano_yyerror(msg); }
+
 %%
