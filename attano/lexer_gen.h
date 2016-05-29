@@ -330,7 +330,7 @@ extern int attano_yylex (void);
 #undef YY_DECL
 #endif
 
-#line 72 "attano/lexer.l"
+#line 62 "attano/lexer.l"
 
 
 #line 337 "attano/lexer_gen.h"

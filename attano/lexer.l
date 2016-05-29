@@ -16,17 +16,7 @@
 [ \t\r\n]               ;
 #.*\n                   ;
 
-\(                      { return '('; }
-\)                      { return ')'; }
-\[                      { return '['; }
-\]                      { return ']'; }
-\{                      { return '{'; }
-\}                      { return '}'; }
-=                       { return '='; }
-:                       { return ':'; }
-;                       { return ';'; }
-,                       { return ','; }
-x                       { return 'x'; }
+[\(\)\[\]\{\}=:;,x]     { return attano_yytext[0]; }
 =>                      { return FATARROW; }
 
 alias                   { return ALIAS; }
