@@ -1,0 +1,3 @@
+import attano.parse
+
+parseStdin()

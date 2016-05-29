@@ -1,0 +1,22 @@
+node kaldwin_out_generatednode_gvn_3 : bit;
+node kaldwin_out_generatednode_gvn_7 : bit;
+node kaldwin_out_generatednode_gvn_4 : bit;
+node kaldwin_out_generatednode_gvn_1 : bit;
+node kaldwin_out_generatednode_gvn_8 : bit;
+node kaldwin_out_generatednode_gvn_5 : bit;
+node kaldwin_out_generatednode_gvn_6 : bit;
+node kaldwin_out_generatednode_gvn_2 : bit;
+alias spi0_next_state = kaldwin_out_generatednode_gvn_5;
+alias spi0_counter_tick = kaldwin_out_generatednode_gvn_5;
+alias spi0_data_sel = spi0_state;
+alias spi0_data_store = kaldwin_out_generatednode_gvn_8;
+create kaldwin_out_nand0 : NAND[4] (
+    in0 => {spi0_counter_zero, spi0_state, spi0_state, kaldwin_out_generatednode_gvn_3},
+    in1 => {1'h1, kaldwin_out_generatednode_gvn_1, 1'h1, spi0_begin},
+    out => {kaldwin_out_generatednode_gvn_1, kaldwin_out_generatednode_gvn_2, kaldwin_out_generatednode_gvn_3, kaldwin_out_generatednode_gvn_4},
+);
+create kaldwin_out_nand1 : NAND[4] (
+    in0 => {kaldwin_out_generatednode_gvn_2, spi0_state, kaldwin_out_generatednode_gvn_3, kaldwin_out_generatednode_gvn_6},
+    in1 => {kaldwin_out_generatednode_gvn_4, spi0_sck, spi0_data_io_store, kaldwin_out_generatednode_gvn_7},
+    out => {kaldwin_out_generatednode_gvn_5, kaldwin_out_generatednode_gvn_6, kaldwin_out_generatednode_gvn_7, kaldwin_out_generatednode_gvn_8},
+);
