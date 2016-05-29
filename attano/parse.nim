@@ -7,7 +7,7 @@ import attano.types
 {.passC: ("-I" & parentDir(currentSourcePath())).}
 
 type
-  ParseError = object of Exception
+  ParseError* = object of Exception
 
 var currentFilename: string
 var currentLineno {.header: "lexer_gen.h", importc: "attano_yylineno".}: int
