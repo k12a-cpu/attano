@@ -163,7 +163,7 @@ expr_atom
     : node_name
     | SIZED_INT
     | '{' expr_list '}'
-    | '{' INT 'x' expr_atom '}'
+    | '{' INT 'x' expr '}'
     | '(' expr ')'
     ;
 
