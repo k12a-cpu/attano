@@ -38,6 +38,10 @@
 %token <str> STRING
 %token <sized_int> SIZED_INT
 
+%type <u64> type
+%type <u64> expr_list exprs
+%type <str> component_name instance_name node_name
+
 %%
 
 compilation_unit
@@ -58,7 +62,10 @@ item
     ;
 
 primitive_item
-    : PRIMITIVE component_name '(' port_list ')' '{' primitive_children '}'
+    : PRIMITIVE component_name '(' port_list ')' '{'
+        { attano_yy_begin_primitive($2); }
+      primitive_children '}'
+        { attano_yy_end_primitive(); }
     ;
 
 primitive_children
@@ -74,18 +81,24 @@ primitive_child
 
 device_item
     : DEVICE STRING ';'
+        { attano_yy_set_device($2); }
     ;
 
 footprint_item
     : FOOTPRINT STRING ';'
+        { attano_yy_set_footprint($2); }
     ;
 
 pin_item
     : PIN INT FATARROW expr ';'
+        { attano_yy_add_pin_mapping($2); }
     ;
 
 composite_item
-    : COMPOSITE component_name '(' port_list ')' '{' composite_children '}'
+    : COMPOSITE component_name '(' port_list ')' '{'
+        { attano_yy_begin_composite($2); }
+      composite_children '}'
+        { attano_yy_end_composite(); }
     ;
 
 composite_children
@@ -100,14 +113,17 @@ composite_child
 
 create_item
     : CREATE instance_name ':' component_name '(' binding_list ')' ';'
+        { attano_yy_construct_instance($2, $4); }
     ;
 
 node_item
     : NODE node_name ':' type ';'
+        { attano_yy_construct_node($2, $4); }
     ;
 
 alias_item
     : ALIAS node_name '=' expr ';'
+        { attano_yy_construct_alias($2); }
     ;
 
 port_list
@@ -121,7 +137,7 @@ ports
     ;
 
 port
-    : node_name ':' type
+    : node_name ':' type            { attano_yy_construct_port($1, $3); }
     ;
 
 binding_list
@@ -135,49 +151,51 @@ bindings
     ;
 
 binding
-    : node_name FATARROW expr
+    : node_name FATARROW expr       { attano_yy_construct_binding($1); }
     ;
 
 type
-    : BIT
-    | BITS '[' INT ']'
+    : BIT                           { $$ = 1; }
+    | BITS '[' INT ']'              { $$ = $3; }
     ;
 
 expr_list
-    : exprs ','
-    | exprs
+    : exprs ','                     { $$ = $1; }
+    | exprs                         { $$ = $1; }
     ;
 
 exprs
-    : exprs ',' expr
-    | expr
+    : exprs ',' expr                { $$ = $1 + 1; }
+    | expr                          { $$ = 1; }
     ;
 
 expr
-    : expr '[' INT ']'
-    | expr '[' INT ':' INT ']'
+    : expr '[' INT ']'              { attano_yy_construct_expr_slice($3, $3); }
+    | expr '[' INT ':' INT ']'      { attano_yy_construct_expr_slice($3, $5); }
     | expr_atom
     ;
 
 expr_atom
-    : node_name
-    | SIZED_INT
-    | '{' expr_list '}'
-    | '{' INT 'x' expr '}'
+    : node_name                     { attano_yy_construct_expr_noderef($1); }
+    | SIZED_INT                     { attano_yy_construct_expr_literal($1.width, $1.value); }
+    | '{' expr_list '}'             { attano_yy_construct_expr_concat($2); }
+    | '{' INT 'x' expr '}'          { attano_yy_construct_expr_multiply($2); }
     | '(' expr ')'
     ;
 
 component_name
-    : IDENT '[' INT ']'
-    | IDENT
+    : IDENT '[' INT ']'             { char buf[256];
+                                      snprintf(buf, 256, "%s[%d]", $1, $3);
+                                      $$ = strdup(buf); }
+    | IDENT                         { $$ = $1; }
     ;
 
 instance_name
-    : IDENT
+    : IDENT                         { $$ = $1; }
     ;
 
 node_name
-    : IDENT
+    : IDENT                         { $$ = $1; }
     ;
 
 %%

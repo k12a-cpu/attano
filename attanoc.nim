@@ -1,3 +1,6 @@
 import attano.parse
+import marshal
 
-parseStdin()
+let unit = parseStdin()
+
+echo $$unit
