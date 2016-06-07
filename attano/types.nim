@@ -24,6 +24,7 @@ type
     case kind*: ExprKind
     of exprNodeRef:
       node*: NodeName
+      width*: int
     of exprLiteral:
       literalWidth*: int
       literalValue*: int

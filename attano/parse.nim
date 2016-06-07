@@ -137,6 +137,7 @@ proc doExprNodeRef(name: cstring) {.cdecl, exportc: "attano_yy_expr_noderef".} =
     loc: currentLoc(),
     kind: exprNodeRef,
     node: $name,
+    width: -1,
   ))
 
 proc doExprLiteral(width, value: uint64) {.cdecl, exportc: "attano_yy_expr_literal".} =

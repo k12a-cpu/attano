@@ -37,8 +37,10 @@ proc walk(c: PChecker, e: PExpr, cc: PCompositeChecker = nil, disconnectedAllowe
   of exprNodeRef:
     if cc != nil and e.node in cc.localNodes:
       result = cc.localNodes[e.node].width
+      e.width = result
     elif e.node in c.globalNodes:
       result = c.globalNodes[e.node].width
+      e.width = result
     else:
       c.error(e.loc, "undefined reference to node '$1'" % [$e.node])
       result = 1 # fallback
