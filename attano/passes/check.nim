@@ -32,7 +32,7 @@ proc error(c: PChecker, loc: Loc, msg: string) {.noSideEffect.} =
 proc error(c: PCompositeChecker, loc: Loc, msg: string) {.noSideEffect.} =
   c.parent.error(loc, msg)
 
-proc walk(c: PChecker, e: PExpr, cc: PCompositeChecker = nil): int =
+proc walk(c: PChecker, e: PExpr, cc: PCompositeChecker = nil, disconnectedAllowed: bool = false): int =
   case e.kind
   of exprNodeRef:
     if cc != nil and e.node in cc.localNodes:
@@ -52,17 +52,22 @@ proc walk(c: PChecker, e: PExpr, cc: PCompositeChecker = nil): int =
       c.error(e.loc, "literal value is greater than the largest representable $1-bit value ($2)" % [$e.literalWidth, $max])
     result = e.literalWidth
 
+  of exprDisconnected:
+    if not disconnectedAllowed:
+      c.error(e.loc, "'disconnected' is disallowed in this context")
+    result = 1
+
   of exprConcat:
     for child in e.concatChildren:
-      let childWidth = c.walk(child, cc)
+      let childWidth = c.walk(child, cc, disconnectedAllowed)
       result += childWidth
 
   of exprMultiply:
-    let childWidth = c.walk(e.multiplyChild, cc)
+    let childWidth = c.walk(e.multiplyChild, cc, disconnectedAllowed)
     result = e.multiplyCount * childWidth
 
   of exprSlice:
-    let childWidth = c.walk(e.sliceChild, cc)
+    let childWidth = c.walk(e.sliceChild, cc, disconnectedAllowed)
     if e.sliceUpperBound >= childWidth:
       c.error(e.loc, "upper bound '$1' out of range (must be in range 0..$2 inclusive)" % [$e.sliceUpperBound, $(childWidth-1)])
     if e.sliceLowerBound >= childWidth:
@@ -80,7 +85,7 @@ proc checkPrimitive(c: PChecker, primitiveDef: PPrimitiveDef, cc: PCompositeChec
   for pin, exp in primitiveDef.pinBindings:
     if pin notin validPins:
       c.error(primitiveDef.loc, "invalid pin number '$1' (expected to be between 1 and $2 inclusive)" % [$pin, $numPins])
-    let width = c.walk(exp, cc)
+    let width = c.walk(exp, cc, disconnectedAllowed = true)
     if width != 1:
       c.error(primitiveDef.loc, "width mismatch at pin '$1': expected a width of 1, but the bound expression has a width of $2" % [$pin, $width])
 
@@ -94,7 +99,7 @@ proc checkInstance(c: PChecker, instanceDef: PInstanceDef, cc: PCompositeChecker
         c.error(instanceDef.loc, "undefined reference to composite port '$1'" % [portName])
       else:
         let expectedWidth = compositeDef.portWidths[portName]
-        let actualWidth = c.walk(exp, cc)
+        let actualWidth = c.walk(exp, cc, disconnectedAllowed = true)
         if actualWidth != expectedWidth:
           c.error(instanceDef.loc, "width mismatch at port '$1': expected a width of $2, but the bound expression has width $3" % [portName, $expectedWidth, $actualWidth])
     if len(instanceDef.bindings) < len(compositeDef.portWidths):

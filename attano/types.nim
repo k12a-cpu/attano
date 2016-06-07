@@ -14,6 +14,7 @@ type
   ExprKind* = enum
     exprNodeRef
     exprLiteral
+    exprDisconnected
     exprConcat
     exprMultiply
     exprSlice
@@ -26,6 +27,8 @@ type
     of exprLiteral:
       literalWidth*: int
       literalValue*: int
+    of exprDisconnected:
+      discard # no fields
     of exprConcat:
       concatChildren*: seq[ref Expr]
     of exprMultiply:

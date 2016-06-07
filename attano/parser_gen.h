@@ -59,15 +59,16 @@ extern int attano_yydebug;
     BITS = 261,
     COMPOSITE = 262,
     DEVICE = 263,
-    FOOTPRINT = 264,
-    INSTANCE = 265,
-    NODE = 266,
-    PIN = 267,
-    PRIMITIVE = 268,
-    INT = 269,
-    IDENT = 270,
-    STRING = 271,
-    SIZED_INT = 272
+    DISCONNECTED = 264,
+    FOOTPRINT = 265,
+    INSTANCE = 266,
+    NODE = 267,
+    PIN = 268,
+    PRIMITIVE = 269,
+    INT = 270,
+    IDENT = 271,
+    STRING = 272,
+    SIZED_INT = 273
   };
 #endif
 
@@ -85,7 +86,7 @@ union ATTANO_YYSTYPE
         uint64_t value;
     } sized_int;
 
-#line 89 "attano/parser_gen.h" /* yacc.c:1909  */
+#line 90 "attano/parser_gen.h" /* yacc.c:1909  */
 };
 
 typedef union ATTANO_YYSTYPE ATTANO_YYSTYPE;

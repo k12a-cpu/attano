@@ -11,6 +11,8 @@ proc rope*(e: PExpr): Rope =
     result = rope(e.node)
   of exprLiteral:
     result = rope(e.literalWidth) & rope("'d") & rope(e.literalValue)
+  of exprDisconnected:
+    result = rope("disconnected")
   of exprConcat:
     result = rope("{")
     if len(e.concatChildren) > 0:

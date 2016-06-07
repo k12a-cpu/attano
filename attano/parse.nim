@@ -147,6 +147,12 @@ proc doExprLiteral(width, value: uint64) {.cdecl, exportc: "attano_yy_expr_liter
     literalValue: int(value),
   ))
 
+proc doExprDisconnected() {.cdecl, exportc: "attano_yy_expr_disconnected".} =
+  exprStack.add(PExpr(
+    loc: currentLoc(),
+    kind: exprDisconnected,
+  ))
+
 proc doExprConcat(numChildren: uint64) {.cdecl, exportc: "attano_yy_expr_concat".} =
   let children = exprStack.popn(int(numChildren))
   exprStack.add(PExpr(

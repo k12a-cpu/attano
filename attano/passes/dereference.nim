@@ -9,7 +9,7 @@ proc dereference(e: PExpr, unit: PCompilationUnit): PExpr =
         unit.aliases[e.node].value.dereference(unit)
       else:
         e
-  of exprLiteral:
+  of exprLiteral, exprDisconnected:
     result = e
   of exprConcat:
     var newChildren = newSeq[PExpr](e.concatChildren.len())

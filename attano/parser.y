@@ -27,6 +27,7 @@
 %token BITS
 %token COMPOSITE
 %token DEVICE
+%token DISCONNECTED
 %token FOOTPRINT
 %token INSTANCE
 %token NODE
@@ -182,6 +183,7 @@ expr
 expr_atom
     : IDENT                         { attano_yy_expr_noderef($1); }
     | SIZED_INT                     { attano_yy_expr_literal($1.width, $1.value); }
+    | DISCONNECTED                  { attano_yy_expr_disconnected(); }
     | '{' expr_list '}'             { attano_yy_expr_concat($2); }
     | '{' INT 'x' expr '}'          { attano_yy_expr_multiply($2); }
     | '(' expr ')'

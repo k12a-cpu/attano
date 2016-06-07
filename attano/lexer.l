@@ -24,6 +24,7 @@ bit                     { return BIT; }
 bits                    { return BITS; }
 composite               { return COMPOSITE; }
 device                  { return DEVICE; }
+disconnected            { return DISCONNECTED; }
 footprint               { return FOOTPRINT; }
 instance                { return INSTANCE; }
 node                    { return NODE; }

@@ -15,7 +15,7 @@ proc substitute(e: PExpr, bindings: OrderedTable[NodeName, PExpr], renames: Tabl
         )
       else:
         e
-  of exprLiteral:
+  of exprLiteral, exprDisconnected:
     result = e
   of exprConcat:
     var newChildren = newSeq[PExpr](e.concatChildren.len())
