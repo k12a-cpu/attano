@@ -3,6 +3,7 @@ import attano.stringify
 import attano.passes.check
 import attano.passes.expandinstances
 import attano.passes.dereference
+import attano.passes.flattennodes
 
 let unit = parseStdin()
 
@@ -15,6 +16,8 @@ if messages.len() > 0:
 expandInstances(unit)
 assert len(check(unit)) == 0
 dereference(unit)
+assert len(check(unit)) == 0
+flattenNodes(unit)
 assert len(check(unit)) == 0
 
 echo $unit
