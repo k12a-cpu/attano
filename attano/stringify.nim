@@ -5,7 +5,7 @@ import attano.types
 proc rope*(loc: Loc): Rope =
   rope($loc)
 
-proc rope*(e: ExprRef): Rope =
+proc rope*(e: PExpr): Rope =
   case e.kind
   of exprNodeRef:
     result = rope(e.node)
@@ -36,116 +36,112 @@ proc rope*(e: ExprRef): Rope =
       rope("]"),
     ]
 
-proc rope*(instance: InstanceRef, indent: Rope = nil): Rope =
+proc rope*(nodeDef: PNodeDef, indent: Rope = nil): Rope =
+  &[
+    indent,
+    rope("node "),
+    rope(nodeDef.name),
+    rope(": bits["),
+    rope(nodeDef.width),
+    rope("];\n"),
+  ]
+
+proc rope*(aliasDef: PAliasDef, indent: Rope = nil): Rope =
+  &[
+    indent,
+    rope("alias "),
+    rope(aliasDef.name),
+    rope(" = "),
+    rope(aliasDef.value),
+    rope(";\n")
+  ]
+
+proc rope*(primitiveDef: PPrimitiveDef, indent: Rope = nil): Rope =
   result = &[
     indent,
-    rope("create "),
-    rope(instance.name),
+    rope("primitive "),
+    rope(primitiveDef.name),
+    rope(" (\n"),
+    indent,
+    rope("  device \""),
+    rope(primitiveDef.device),
+    rope("\";\n"),
+    indent,
+    rope("  footprint \""),
+    rope(primitiveDef.footprint),
+    rope("\";\n"),
+  ]
+  for pin, exp in primitiveDef.pinBindings:
+    result = &[
+      result,
+      indent,
+      rope("  pin "),
+      rope(pin),
+      rope(" => "),
+      rope(exp),
+      rope(";\n"),
+    ]
+  result = result & indent & rope(");\n")
+
+proc rope(instanceDef: PInstanceDef, indent: Rope = nil): Rope =
+  result = &[
+    indent,
+    rope("instance "),
+    rope(instanceDef.name),
     rope(": "),
-    rope(instance.componentName),
+    rope(instanceDef.compositeName),
     rope(" (\n"),
   ]
-  for nodeName, bindingExpr in instance.bindings:
+  for node, exp in instanceDef.bindings:
     result = &[
       result,
       indent,
       rope("  "),
-      rope(nodeName),
+      rope(node),
       rope(" => "),
-      rope(bindingExpr),
+      rope(exp),
       rope(",\n"),
     ]
   result = result & indent & rope(");\n")
 
-proc rope*(primitive: PrimitiveRef): Rope =
-  result = &[
-    rope("primitive "),
-    rope(primitive.name),
-    rope(" (\n"),
-  ]
-  for nodeName, width in primitive.portWidths:
-    result = &[
-      result,
-      rope("  "),
-      rope(nodeName),
-      rope(": bits["),
-      rope(width),
-      rope("],\n"),
-    ]
-  result = &[
-    result,
-    rope(") {\n  device \""),
-    rope(primitive.device),
-    rope("\";\n  footprint \""),
-    rope(primitive.footprint),
-    rope("\";\n"),
-  ]
-  for pin, pinExpr in primitive.pinMapping:
-    result = &[
-      result,
-      rope("  pin "),
-      rope(pin),
-      rope(" => "),
-      rope(pinExpr),
-      rope(";\n")
-    ]
-  result = result & rope("}\n")
-
-proc rope*(composite: CompositeRef): Rope =
+proc rope(compositeDef: PCompositeDef): Rope =
   result = &[
     rope("composite "),
-    rope(composite.name),
+    rope(compositeDef.name),
     rope(" (\n"),
   ]
-  for nodeName, width in composite.portWidths:
+  for port, width in compositeDef.portWidths:
     result = &[
       result,
       rope("  "),
-      rope(nodeName),
+      rope(port),
       rope(": bits["),
       rope(width),
       rope("],\n"),
     ]
   result = result & rope(") {\n")
-  for nodeName, width in composite.nodeWidths:
-    result = &[
-      result,
-      rope("  node "),
-      rope(nodeName),
-      rope(": bits["),
-      rope(width),
-      rope("];\n"),
-    ]
   let indent = rope("  ")
-  for instance in composite.instances:
-    result = result & rope(instance, indent)
+  for nodeDef in compositeDef.nodes.values():
+    result = result & rope(nodeDef, indent)
+  for aliasDef in compositeDef.aliases.values():
+    result = result & rope(aliasDef, indent)
+  for primitiveDef in compositeDef.primitives.values():
+    result = result & rope(primitiveDef, indent)
+  for instanceDef in compositeDef.instances.values():
+    result = result & rope(instanceDef, indent)
   result = result & rope("}\n")
 
-proc rope*(unit: CompilationUnitRef): Rope =
-  for nodeName, width in unit.nodeWidths:
-    result = &[
-      result,
-      rope("node "),
-      rope(nodeName),
-      rope(": bits["),
-      rope(width),
-      rope("];\n"),
-    ]
-  for nodeName, aliasExpr in unit.aliases:
-    result = &[
-      result,
-      rope("alias "),
-      rope(nodeName),
-      rope(" = "),
-      rope(aliasExpr),
-      rope(";\n"),
-    ]
-  for primitive in unit.primitives.values():
-    result = result & rope(primitive)
-  for composite in unit.composites.values():
-    result = result & rope(composite)
-  for instance in unit.instances:
-    result = result & rope(instance)
+proc rope(unit: PCompilationUnit): Rope =
+  for compositeDef in unit.composites.values():
+    result = result & rope(compositeDef)
+  for nodeDef in unit.nodes.values():
+    result = result & rope(nodeDef)
+  for aliasDef in unit.aliases.values():
+    result = result & rope(aliasDef)
+  for primitiveDef in unit.primitives.values():
+    result = result & rope(primitiveDef)
+  for instanceDef in unit.instances.values():
+    result = result & rope(instanceDef)
 
-proc `$`*(unit: CompilationUnitRef): string =
+proc `$`*(unit: PCompilationUnit): string =
   $rope(unit)

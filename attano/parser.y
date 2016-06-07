@@ -26,9 +26,9 @@
 %token BIT
 %token BITS
 %token COMPOSITE
-%token CREATE
 %token DEVICE
 %token FOOTPRINT
+%token INSTANCE
 %token NODE
 %token PIN
 %token PRIMITIVE
@@ -40,12 +40,17 @@
 
 %type <u64> type
 %type <u64> expr_list exprs
-%type <str> component_name instance_name node_name
+%type <str> composite_name
 
 %%
 
 compilation_unit
+    : items_opt
+    ;
+
+items_opt
     : items
+    |
     ;
 
 items
@@ -54,18 +59,52 @@ items
     ;
 
 item
-    : primitive_item
-    | composite_item
-    | create_item
-    | node_item
+    : composite_item
+    | atomic_item
+    ;
+
+atomic_items_opt
+    : atomic_items
+    |
+    ;
+
+atomic_items
+    : atomic_items atomic_item
+    | atomic_item
+    ;
+
+atomic_item
+    : node_item
     | alias_item
+    | instance_item
+    | primitive_item
+    ;
+
+composite_item
+    : COMPOSITE composite_name '(' port_list ')'
+        { attano_yy_composite_begin($2); }
+      '{' atomic_items_opt '}'
+        { attano_yy_composite_end(); }
+    ;
+
+node_item
+    : NODE IDENT ':' type ';'
+        { attano_yy_node($2, $4); }
+    ;
+
+alias_item
+    : ALIAS IDENT '=' expr ';'
+        { attano_yy_alias($2); }
+    ;
+
+instance_item
+    : INSTANCE IDENT ':' composite_name '(' binding_list ')' ';'
+        { attano_yy_instance($2, $4); }
     ;
 
 primitive_item
-    : PRIMITIVE component_name '(' port_list ')' '{'
-        { attano_yy_begin_primitive($2); }
-      primitive_children '}'
-        { attano_yy_end_primitive(); }
+    : PRIMITIVE IDENT '(' primitive_children ')' ';'
+        { attano_yy_primitive($2); }
     ;
 
 primitive_children
@@ -80,50 +119,15 @@ primitive_child
     ;
 
 device_item
-    : DEVICE STRING ';'
-        { attano_yy_set_device($2); }
+    : DEVICE STRING ';'             { attano_yy_device($2); }
     ;
 
 footprint_item
-    : FOOTPRINT STRING ';'
-        { attano_yy_set_footprint($2); }
+    : FOOTPRINT STRING ';'          { attano_yy_footprint($2); }
     ;
 
 pin_item
-    : PIN INT FATARROW expr ';'
-        { attano_yy_add_pin_mapping($2); }
-    ;
-
-composite_item
-    : COMPOSITE component_name '(' port_list ')' '{'
-        { attano_yy_begin_composite($2); }
-      composite_children '}'
-        { attano_yy_end_composite(); }
-    ;
-
-composite_children
-    : composite_children composite_child
-    | composite_child
-    ;
-
-composite_child
-    : create_item
-    | node_item
-    ;
-
-create_item
-    : CREATE instance_name ':' component_name '(' binding_list ')' ';'
-        { attano_yy_construct_instance($2, $4); }
-    ;
-
-node_item
-    : NODE node_name ':' type ';'
-        { attano_yy_construct_node($2, $4); }
-    ;
-
-alias_item
-    : ALIAS node_name '=' expr ';'
-        { attano_yy_construct_alias($2); }
+    : PIN INT FATARROW expr ';'     { attano_yy_pin($2); }
     ;
 
 port_list
@@ -137,7 +141,7 @@ ports
     ;
 
 port
-    : node_name ':' type            { attano_yy_construct_port($1, $3); }
+    : IDENT ':' type                { attano_yy_port($1, $3); }
     ;
 
 binding_list
@@ -151,7 +155,7 @@ bindings
     ;
 
 binding
-    : node_name FATARROW expr       { attano_yy_construct_binding($1); }
+    : IDENT FATARROW expr           { attano_yy_binding($1); }
     ;
 
 type
@@ -170,32 +174,24 @@ exprs
     ;
 
 expr
-    : expr '[' INT ']'              { attano_yy_construct_expr_slice($3, $3); }
-    | expr '[' INT ':' INT ']'      { attano_yy_construct_expr_slice($3, $5); }
+    : expr '[' INT ']'              { attano_yy_expr_slice($3, $3); }
+    | expr '[' INT ':' INT ']'      { attano_yy_expr_slice($3, $5); }
     | expr_atom
     ;
 
 expr_atom
-    : node_name                     { attano_yy_construct_expr_noderef($1); }
-    | SIZED_INT                     { attano_yy_construct_expr_literal($1.width, $1.value); }
-    | '{' expr_list '}'             { attano_yy_construct_expr_concat($2); }
-    | '{' INT 'x' expr '}'          { attano_yy_construct_expr_multiply($2); }
+    : IDENT                         { attano_yy_expr_noderef($1); }
+    | SIZED_INT                     { attano_yy_expr_literal($1.width, $1.value); }
+    | '{' expr_list '}'             { attano_yy_expr_concat($2); }
+    | '{' INT 'x' expr '}'          { attano_yy_expr_multiply($2); }
     | '(' expr ')'
     ;
 
-component_name
+composite_name
     : IDENT '[' INT ']'             { char buf[256];
                                       snprintf(buf, 256, "%s[%d]", $1, $3);
                                       $$ = strdup(buf); }
     | IDENT                         { $$ = $1; }
-    ;
-
-instance_name
-    : IDENT                         { $$ = $1; }
-    ;
-
-node_name
-    : IDENT                         { $$ = $1; }
     ;
 
 %%

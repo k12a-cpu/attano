@@ -6,10 +6,10 @@ type
     filename: string
     lineno: int
   
-  ComponentName* = string
+  CompositeName* = string
   InstanceName* = string
   NodeName* = string
-  NumBits* = int
+  PinNumber* = int
   
   ExprKind* = enum
     exprNodeRef
@@ -24,7 +24,7 @@ type
     of exprNodeRef:
       node*: NodeName
     of exprLiteral:
-      literalWidth*: NumBits
+      literalWidth*: int
       literalValue*: int
     of exprConcat:
       concatChildren*: seq[ref Expr]
@@ -32,43 +32,56 @@ type
       multiplyCount*: int
       multiplyChild*: ref Expr
     of exprSlice:
-      sliceUpperBound*: NumBits
-      sliceLowerBound*: NumBits
+      sliceUpperBound*: int
+      sliceLowerBound*: int
       sliceChild*: ref Expr
+
+  NodeDef* = object
+    loc*: Loc
+    name*: NodeName
+    width*: int
   
-  Instance* = object
+  AliasDef* = object
+    loc*: Loc
+    name*: NodeName
+    value*: ref Expr
+  
+  PrimitiveDef* = object
     loc*: Loc
     name*: InstanceName
-    componentName*: ComponentName
-    bindings*: OrderedTable[NodeName, ref Expr]
-  
-  Primitive* = object
-    loc*: Loc
-    name*: ComponentName
-    portWidths*: OrderedTable[NodeName, NumBits]
     device*: string
     footprint*: string
-    pinMapping*: OrderedTable[int, ref Expr]
+    pinBindings*: OrderedTable[PinNumber, ref Expr]
   
-  Composite* = object
+  InstanceDef* = object
     loc*: Loc
-    name*: ComponentName
-    portWidths*: OrderedTable[NodeName, NumBits]
-    nodeWidths*: OrderedTable[NodeName, NumBits]
-    instances*: seq[ref Instance]
+    name*: InstanceName
+    compositeName*: CompositeName
+    bindings*: OrderedTable[NodeName, ref Expr]
+  
+  CompositeDef* = object
+    loc*: Loc
+    name*: CompositeName
+    portWidths*: OrderedTable[NodeName, int]
+    nodes*: OrderedTable[NodeName, ref NodeDef]
+    aliases*: OrderedTable[NodeName, ref AliasDef]
+    primitives*: OrderedTable[InstanceName, ref PrimitiveDef]
+    instances*: OrderedTable[InstanceName, ref InstanceDef]
   
   CompilationUnit* = object
-    nodeWidths*: OrderedTable[NodeName, NumBits]
-    aliases*: OrderedTable[NodeName, ref Expr]
-    primitives*: OrderedTable[ComponentName, ref Primitive]
-    composites*: OrderedTable[ComponentName, ref Composite]
-    instances*: seq[ref Instance]
+    composites*: OrderedTable[CompositeName, ref CompositeDef]
+    nodes*: OrderedTable[NodeName, ref NodeDef]
+    aliases*: OrderedTable[NodeName, ref AliasDef]
+    primitives*: OrderedTable[InstanceName, ref PrimitiveDef]
+    instances*: OrderedTable[InstanceName, ref InstanceDef]
   
-  ExprRef* = ref Expr
-  InstanceRef* = ref Instance
-  PrimitiveRef* = ref Primitive
-  CompositeRef* = ref Composite
-  CompilationUnitRef* = ref CompilationUnit
+  PExpr* = ref Expr
+  PNodeDef* = ref NodeDef
+  PAliasDef* = ref AliasDef
+  PPrimitiveDef* = ref PrimitiveDef
+  PInstanceDef* = ref InstanceDef
+  PCompositeDef* = ref CompositeDef
+  PCompilationUnit* = ref CompilationUnit
 
 proc `$`*(loc: Loc): string {.noSideEffect.} =
   "$1:$2" % [loc.filename, $loc.lineno]

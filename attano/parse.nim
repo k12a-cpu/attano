@@ -13,24 +13,27 @@ type
 var currentFilename: string
 var currentLineno {.header: "lexer_gen.h", importc: "attano_yylineno".}: int
 
-var unit: CompilationUnitRef
-var primitive: PrimitiveRef
-var composite: CompositeRef
-var portWidths: OrderedTable[NodeName, NumBits]
-var bindings: OrderedTable[NodeName, ExprRef]
-var exprStack: seq[ExprRef] = @[]
+var unit: PCompilationUnit
+var composite: PCompositeDef
+var device, footprint: string
+var pinBindings: OrderedTable[PinNumber, PExpr]
+var portWidths: OrderedTable[NodeName, int]
+var bindings: OrderedTable[NodeName, PExpr]
+var exprStack: seq[PExpr] = @[]
 
 proc reset() =
   unit.new()
-  unit.nodeWidths = initOrderedTable[NodeName, NumBits]()
-  unit.aliases = initOrderedTable[NodeName, ExprRef]()
-  unit.primitives = initOrderedTable[ComponentName, PrimitiveRef]()
-  unit.composites = initOrderedTable[ComponentName, CompositeRef]()
-  unit.instances = @[]
-  primitive = nil
+  unit.composites = initOrderedTable[CompositeName, PCompositeDef]()
+  unit.nodes = initOrderedTable[NodeName, PNodeDef]()
+  unit.aliases = initOrderedTable[NodeName, PAliasDef]()
+  unit.primitives = initOrderedTable[InstanceName, PPrimitiveDef]()
+  unit.instances = initOrderedTable[InstanceName, PInstanceDef]()
   composite = nil
-  portWidths = initOrderedTable[NodeName, NumBits]()
-  bindings = initOrderedTable[NodeName, ExprRef]()
+  device = nil
+  footprint = nil
+  pinBindings = initOrderedTable[PinNumber, PExpr]()
+  portWidths = initOrderedTable[NodeName, int]()
+  bindings = initOrderedTable[NodeName, PExpr]()
   exprStack.setLen(0)
 
 proc popn[T](a: var seq[T], count: int): seq[T] {.noSideEffect.} =
@@ -47,107 +50,123 @@ proc parseError(msg: string) =
 proc parseError(msg: cstring) {.cdecl, exportc: "attano_yyerror".} =
   parseError($msg)
 
-proc beginPrimitive(name: cstring) {.cdecl, exportc: "attano_yy_begin_primitive".} =
-  primitive = PrimitiveRef(
+proc doCompositeBegin(name: cstring) {.cdecl, exportc: "attano_yy_composite_begin".} =
+  composite = PCompositeDef(
     loc: currentLoc(),
     name: $name,
     portWidths: portWidths,
-    device: nil,
-    footprint: nil,
-    pinMapping: initOrderedTable[int, ExprRef](),
+    nodes: initOrderedTable[NodeName, PNodeDef](),
+    aliases: initOrderedTable[NodeName, PAliasDef](),
+    primitives: initOrderedTable[InstanceName, PPrimitiveDef](),
+    instances: initOrderedTable[InstanceName, PInstanceDef](),
   )
-  portWidths = initOrderedTable[NodeName, NumBits]()
+  portWidths = initOrderedTable[NodeName, int]()
 
-proc endPrimitive() {.cdecl, exportc: "attano_yy_end_primitive".} =
-  unit.primitives[primitive.name] = primitive
-  primitive = nil
-
-proc setDevice(device: cstring) {.cdecl, exportc: "attano_yy_set_device".} =
-  primitive.device = $device
-
-proc setFootprint(footprint: cstring) {.cdecl, exportc: "attano_yy_set_footprint".} =
-  primitive.footprint = $footprint
-
-proc addPinMapping(pin: uint64) {.cdecl, exportc: "attano_yy_add_pin_mapping".} =
-  primitive.pinMapping[int(pin)] = exprStack.pop()
-
-proc beginComposite(name: cstring) {.cdecl, exportc: "attano_yy_begin_composite".} =
-  composite = CompositeRef(
-    loc: currentLoc(),
-    name: $name,
-    portWidths: portWidths,
-    nodeWidths: initOrderedTable[NodeName, NumBits](),
-    instances: @[],
-  )
-  portWidths = initOrderedTable[NodeName, NumBits]()
-
-proc endComposite() {.cdecl, exportc: "attano_yy_end_composite".} =
+proc doCompositeEnd() {.cdecl, exportc: "attano_yy_composite_end".} =
   unit.composites[composite.name] = composite
   composite = nil
 
-proc constructInstance(instName, compName: cstring) {.cdecl, exportc: "attano_yy_construct_instance".} =
-  let instance = InstanceRef(
+proc doNode(name: cstring, width: uint64) {.cdecl, exportc: "attano_yy_node".} =
+  let nodeDef = PNodeDef(
     loc: currentLoc(),
-    name: $instName,
-    componentName: $compName,
+    name: $name,
+    width: int(width),
+  )
+  if composite == nil:
+    unit.nodes[nodeDef.name] = nodeDef
+  else:
+    composite.nodes[nodeDef.name] = nodeDef
+
+proc doAlias(name: cstring) {.cdecl, exportc: "attano_yy_alias".} =
+  let aliasDef = PAliasDef(
+    loc: currentLoc(),
+    name: $name,
+    value: exprStack.pop(),
+  )
+  if composite == nil:
+    unit.aliases[aliasDef.name] = aliasDef
+  else:
+    composite.aliases[aliasDef.name] = aliasDef
+
+proc doInstance(name, compositeName: cstring) {.cdecl, exportc: "attano_yy_instance".} =
+  let instanceDef = PInstanceDef(
+    loc: currentLoc(),
+    name: $name,
+    compositeName: $compositeName,
     bindings: bindings,
   )
-  if composite != nil:
-    composite.instances.add(instance)
+  if composite == nil:
+    unit.instances[instanceDef.name] = instanceDef
   else:
-    unit.instances.add(instance)
-  bindings = initOrderedTable[NodeName, ExprRef]()
+    composite.instances[instanceDef.name] = instanceDef
+  bindings = initOrderedTable[NodeName, PExpr]()
 
-proc constructNode(name: cstring, width: uint64) {.cdecl, exportc: "attano_yy_construct_node".} =
-  if composite != nil:
-    composite.nodeWidths[$name] = NumBits(width)
+proc doPrimitive(name: cstring) {.cdecl, exportc: "attano_yy_primitive".} =
+  let primitiveDef = PPrimitiveDef(
+    loc: currentLoc(),
+    name: $name,
+    device: device,
+    footprint: footprint,
+    pinBindings: pinBindings,
+  )
+  if composite == nil:
+    unit.primitives[primitiveDef.name] = primitiveDef
   else:
-    unit.nodeWidths[$name] = NumBits(width)
+    composite.primitives[primitiveDef.name] = primitiveDef
+  device = nil
+  footprint = nil
+  pinBindings = initOrderedTable[PinNumber, PExpr]()
 
-proc constructAlias(name: cstring) {.cdecl, exportc: "attano_yy_construct_alias".} =
-  unit.aliases[$name] = exprStack.pop()
+proc doDevice(dev: cstring) {.cdecl, exportc: "attano_yy_device".} =
+  device = $dev
 
-proc constructPort(name: cstring, width: uint64) {.cdecl, exportc: "attano_yy_construct_port".} =
-  portWidths[$name] = NumBits(width)
+proc doFootprint(fp: cstring) {.cdecl, exportc: "attano_yy_footprint".} =
+  footprint = $fp
 
-proc constructBinding(name: cstring) {.cdecl, exportc: "attano_yy_construct_binding".} =
+proc doPin(number: uint64) {.cdecl, exportc: "attano_yy_pin".} =
+  pinBindings[PinNumber(number)] = exprStack.pop()
+
+proc doPort(name: cstring, width: uint64) {.cdecl, exportc: "attano_yy_port".} =
+  portWidths[$name] = int(width)
+
+proc doBinding(name: cstring) {.cdecl, exportc: "attano_yy_binding".} =
   bindings[$name] = exprStack.pop()
 
-proc constructExprNodeRef(name: cstring) {.cdecl, exportc: "attano_yy_construct_expr_noderef".} =
-  exprStack.add(ExprRef(
+proc doExprNodeRef(name: cstring) {.cdecl, exportc: "attano_yy_expr_noderef".} =
+  exprStack.add(PExpr(
     loc: currentLoc(),
     kind: exprNodeRef,
     node: $name,
   ))
 
-proc constructExprLiteral(width, value: uint64) {.cdecl, exportc: "attano_yy_construct_expr_literal".} =
-  exprStack.add(ExprRef(
+proc doExprLiteral(width, value: uint64) {.cdecl, exportc: "attano_yy_expr_literal".} =
+  exprStack.add(PExpr(
     loc: currentLoc(),
     kind: exprLiteral,
     literalWidth: int(width),
     literalValue: int(value),
   ))
 
-proc constructExprConcat(numChildren: uint64) {.cdecl, exportc: "attano_yy_construct_expr_concat".} =
+proc doExprConcat(numChildren: uint64) {.cdecl, exportc: "attano_yy_expr_concat".} =
   let children = exprStack.popn(int(numChildren))
-  exprStack.add(ExprRef(
+  exprStack.add(PExpr(
     loc: currentLoc(),
     kind: exprConcat,
     concatChildren: children,
   ))
 
-proc constructExprMultiply(count: uint64) {.cdecl, exportc: "attano_yy_construct_expr_multiply".} =
+proc doExprMultiply(count: uint64) {.cdecl, exportc: "attano_yy_expr_multiply".} =
   let child = exprStack.pop()
-  exprStack.add(ExprRef(
+  exprStack.add(PExpr(
     loc: currentLoc(),
     kind: exprMultiply,
     multiplyCount: int(count),
     multiplyChild: child,
   ))
 
-proc constructExprSlice(upperBound, lowerBound: uint64) {.cdecl, exportc: "attano_yy_construct_expr_slice".} =
+proc doExprSlice(upperBound, lowerBound: uint64) {.cdecl, exportc: "attano_yy_expr_slice".} =
   let child = exprStack.pop()
-  exprStack.add(ExprRef(
+  exprStack.add(PExpr(
     loc: currentLoc(),
     kind: exprSlice,
     sliceUpperBound: int(upperBound),
@@ -158,14 +177,14 @@ proc constructExprSlice(upperBound, lowerBound: uint64) {.cdecl, exportc: "attan
 proc parseStdinInternal() {.cdecl, header: "parser.h", importc: "attano_parse_stdin".}
 proc parseFileInternal(filename: cstring) {.cdecl, header: "parser.h", importc: "attano_parse_file".}
 
-proc parseStdin*(): CompilationUnitRef =
+proc parseStdin*(): PCompilationUnit =
   reset()
   currentFilename = "<stdin>"
   parseStdinInternal()
   result = unit
   reset()
 
-proc parseFile*(filename: string): CompilationUnitRef =
+proc parseFile*(filename: string): PCompilationUnit =
   reset()
   currentFilename = filename
   parseFileInternal(filename)

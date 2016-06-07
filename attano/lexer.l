@@ -20,12 +20,12 @@
 =>                      { return FATARROW; }
 
 alias                   { return ALIAS; }
-bits                    { return BITS; }
 bit                     { return BIT; }
+bits                    { return BITS; }
 composite               { return COMPOSITE; }
-create                  { return CREATE; }
 device                  { return DEVICE; }
 footprint               { return FOOTPRINT; }
+instance                { return INSTANCE; }
 node                    { return NODE; }
 pin                     { return PIN; }
 primitive               { return PRIMITIVE; }
