@@ -44,13 +44,13 @@ proc substitute(e: PExpr, bindings: OrderedTable[NodeName, PExpr], renames: Tabl
 
 proc instantiate(unit: PCompilationUnit, loc: Loc, name: InstanceName, compositeName: CompositeName, bindings: OrderedTable[NodeName, PExpr]) =
   let compositeDef = unit.composites[compositeName]
-  
+
   var renames = initTable[NodeName, NodeName]()
   for nodeDef in compositeDef.nodes.values():
     renames[nodeDef.name] = name & "." & nodeDef.name
   for aliasDef in compositeDef.aliases.values():
     renames[aliasDef.name] = name & "." & aliasDef.name
-  
+
   # Nodes
   for nodeDef in compositeDef.nodes.values():
     let newNodeDef = PNodeDef(
@@ -59,7 +59,7 @@ proc instantiate(unit: PCompilationUnit, loc: Loc, name: InstanceName, composite
       width: nodeDef.width,
     )
     unit.nodes[newNodeDef.name] = newNodeDef
-  
+
   # Aliases
   for aliasDef in compositeDef.aliases.values():
     let newAliasDef = PAliasDef(
@@ -68,7 +68,7 @@ proc instantiate(unit: PCompilationUnit, loc: Loc, name: InstanceName, composite
       value: aliasDef.value.substitute(bindings, renames),
     )
     unit.aliases[newAliasDef.name] = newAliasDef
-  
+
   # Primitives
   for primitiveDef in compositeDef.primitives.values():
     var newPinBindings = initOrderedTable[PinNumber, PExpr]()
@@ -82,7 +82,7 @@ proc instantiate(unit: PCompilationUnit, loc: Loc, name: InstanceName, composite
       pinBindings: newPinBindings,
     )
     unit.primitives[newPrimitiveDef.name] = newPrimitiveDef
-  
+
   # Instances
   for instanceDef in compositeDef.instances.values():
     let newInstanceName = name & "." & instanceDef.name
@@ -94,10 +94,10 @@ proc instantiate(unit: PCompilationUnit, loc: Loc, name: InstanceName, composite
 proc expandInstances*(unit: PCompilationUnit) =
   for instance in unit.instances.values():
     instantiate(unit, instance.loc, instance.name, instance.compositeName, instance.bindings)
-  
+
   unit.composites = initOrderedTable[CompositeName, PCompositeDef]()
   unit.instances = initOrderedTable[InstanceName, PInstanceDef]()
-  
+
   # use these instead once we are compiling with Nim v0.14
   #unit.composites.clear()
   #unit.instances.clear()

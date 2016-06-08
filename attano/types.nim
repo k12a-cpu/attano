@@ -5,12 +5,12 @@ type
   Loc* = tuple
     filename: string
     lineno: int
-  
+
   CompositeName* = string
   InstanceName* = string
   NodeName* = string
   PinNumber* = int
-  
+
   ExprKind* = enum
     exprNodeRef
     exprLiteral
@@ -18,7 +18,7 @@ type
     exprConcat
     exprMultiply
     exprSlice
-  
+
   Expr* = object
     loc*: Loc
     case kind*: ExprKind
@@ -44,25 +44,25 @@ type
     loc*: Loc
     name*: NodeName
     width*: int
-  
+
   AliasDef* = object
     loc*: Loc
     name*: NodeName
     value*: ref Expr
-  
+
   PrimitiveDef* = object
     loc*: Loc
     name*: InstanceName
     device*: string
     footprint*: string
     pinBindings*: OrderedTable[PinNumber, ref Expr]
-  
+
   InstanceDef* = object
     loc*: Loc
     name*: InstanceName
     compositeName*: CompositeName
     bindings*: OrderedTable[NodeName, ref Expr]
-  
+
   CompositeDef* = object
     loc*: Loc
     name*: CompositeName
@@ -71,14 +71,14 @@ type
     aliases*: OrderedTable[NodeName, ref AliasDef]
     primitives*: OrderedTable[InstanceName, ref PrimitiveDef]
     instances*: OrderedTable[InstanceName, ref InstanceDef]
-  
+
   CompilationUnit* = object
     composites*: OrderedTable[CompositeName, ref CompositeDef]
     nodes*: OrderedTable[NodeName, ref NodeDef]
     aliases*: OrderedTable[NodeName, ref AliasDef]
     primitives*: OrderedTable[InstanceName, ref PrimitiveDef]
     instances*: OrderedTable[InstanceName, ref InstanceDef]
-  
+
   PExpr* = ref Expr
   PNodeDef* = ref NodeDef
   PAliasDef* = ref AliasDef

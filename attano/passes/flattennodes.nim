@@ -18,7 +18,7 @@ proc flatten(e: PExpr): seq[PExpr] =
           sliceLowerBound: bit,
           sliceChild: e,
         )
-  
+
   of exprLiteral:
     let zero = PExpr(
       loc: e.loc,
@@ -39,25 +39,25 @@ proc flatten(e: PExpr): seq[PExpr] =
           one
         else:
           zero
-  
+
   of exprDisconnected:
     result = @[e]
-  
+
   of exprConcat:
     result = @[]
     for i in countdown(e.concatChildren.len()-1, 0):
       result.add(flatten(e.concatChildren[i]))
-  
+
   of exprMultiply:
     result = cycle(flatten(e.multiplyChild), e.multiplyCount)
-  
+
   of exprSlice:
     result = flatten(e.sliceChild)[e.sliceLowerBound .. e.sliceUpperBound]
 
 proc flattenNodes*(unit: PCompilationUnit) =
   assert(len(unit.aliases) == 0)
   assert(len(unit.instances) == 0)
-  
+
   for primitiveDef in unit.primitives.values():
     for exp in primitiveDef.pinBindings.mvalues():
       let bitExps = flatten(exp)

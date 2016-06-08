@@ -6,24 +6,24 @@ type
   NodeInfo = tuple
     loc: Loc
     width: int
-  
+
   InstanceInfo = tuple
     loc: Loc
-  
+
   Checker = object
     unit: PCompilationUnit
     messages: seq[string]
     globalNodes: Table[NodeName, NodeInfo]
     globalInstances: Table[InstanceName, InstanceInfo]
-  
+
   PChecker = ref Checker
-  
+
   CompositeChecker = object
     parent: PChecker
     compositeDef: PCompositeDef
     localNodes: Table[NodeName, NodeInfo]
     localInstances: Table[InstanceName, InstanceInfo]
-  
+
   PCompositeChecker = ref CompositeChecker
 
 proc error(c: PChecker, loc: Loc, msg: string) {.noSideEffect.} =

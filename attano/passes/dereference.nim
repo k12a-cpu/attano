@@ -40,6 +40,6 @@ proc dereference*(unit: PCompilationUnit) =
   for primitiveDef in unit.primitives.values():
     for pin, exp in primitiveDef.pinBindings.mpairs():
       exp = exp.dereference(unit)
-  
+
   #unit.aliases.clear()
   unit.aliases = initOrderedTable[NodeName, PAliasDef]()
