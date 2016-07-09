@@ -1,6 +1,6 @@
 from tables import pairs, values
 import ropes
-import attano.types
+import types
 
 proc rope*(loc: Loc): Rope =
   rope($loc)

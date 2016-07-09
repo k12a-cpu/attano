@@ -1,6 +1,6 @@
 from os import parentDir
 from strutils import `%`
-import attano.types
+import types
 import tables
 
 {.compile: "lexer_gen.c".}

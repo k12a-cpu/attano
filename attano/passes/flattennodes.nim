@@ -1,6 +1,6 @@
 from sequtils import cycle
 from tables import len, mvalues, values
-import attano.types
+import ../types
 
 proc flatten(e: PExpr): seq[PExpr] =
   case e.kind

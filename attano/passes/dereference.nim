@@ -1,5 +1,5 @@
 import tables
-import attano.types
+import ../types
 
 proc dereference(e: PExpr, unit: PCompilationUnit): PExpr =
   case e.kind
@@ -41,5 +41,7 @@ proc dereference*(unit: PCompilationUnit) =
     for pin, exp in primitiveDef.pinBindings.mpairs():
       exp = exp.dereference(unit)
 
-  #unit.aliases.clear()
   unit.aliases = initOrderedTable[NodeName, PAliasDef]()
+
+  # use this instead once https://github.com/nim-lang/Nim/issues/4448 is resolved
+  #unit.aliases.clear()

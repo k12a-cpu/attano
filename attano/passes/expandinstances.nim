@@ -1,5 +1,5 @@
 import tables
-import attano.types
+import ../types
 
 proc substitute(e: PExpr, bindings: OrderedTable[NodeName, PExpr], renames: Table[NodeName, NodeName]): PExpr =
   case e.kind
@@ -98,6 +98,6 @@ proc expandInstances*(unit: PCompilationUnit) =
   unit.composites = initOrderedTable[CompositeName, PCompositeDef]()
   unit.instances = initOrderedTable[InstanceName, PInstanceDef]()
 
-  # use these instead once we are compiling with Nim v0.14
+  # use these instead once https://github.com/nim-lang/Nim/issues/4448 is resolved
   #unit.composites.clear()
   #unit.instances.clear()

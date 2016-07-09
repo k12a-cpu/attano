@@ -1,6 +1,6 @@
 from strutils import `%`
 import tables
-import attano.types
+import ../types
 
 type
   NodeInfo = tuple
