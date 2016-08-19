@@ -1,0 +1,3 @@
+# Exclude auto-generated C files from Github's language statistics
+attano/*_gen.c linguist-vendored
+attano/*_gen.h linguist-vendored
