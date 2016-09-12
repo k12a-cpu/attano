@@ -204,6 +204,68 @@ proc checkComposites(c: PChecker) =
     cc.checkPrimitives()
     cc.checkInstances()
 
+type
+  ContainsCycle = object of Exception
+
+proc sortAliases(unit: PCompilationUnit) =
+  ## Since aliases can refer to other aliases in their expressions, they form a
+  ## directed acyclic graph. This proc performs a topological sort, placing each
+  ## alias after all the aliases it refers to.
+  ## https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search
+
+  type
+    Mark = enum
+      markNone
+      markTemp
+      markPerm
+
+    Info = object
+      mark: Mark
+      pos: int
+
+  var infos = initTable[NodeName, Info]()
+  var nextPos = 0
+
+  proc visit(alias: PAliasDef)
+
+  proc walk(exp: PExpr) =
+    case exp.kind
+    of exprNodeRef:
+      if exp.node in unit.aliases:
+        visit(unit.aliases[exp.node])
+    of exprConcat:
+      for child in exp.concatChildren:
+        walk(child)
+    of exprMultiply:
+      walk(exp.multiplyChild)
+    of exprSlice:
+      walk(exp.sliceChild)
+    else:
+      discard
+
+  proc visit(alias: PAliasDef) =
+    if alias.name notin infos:
+      infos[alias.name] = Info(mark: markNone, pos: -1)
+    case infos[alias.name].mark
+    of markNone:
+      infos[alias.name].mark = markTemp
+      walk(alias.value)
+      infos[alias.name].mark = markPerm
+      infos[alias.name].pos = nextPos
+      inc nextPos
+    of markTemp:
+      raise newException(ContainsCycle, "")
+    of markPerm:
+      discard
+
+  for alias in unit.aliases.values:
+    visit(alias)
+
+  proc cmpPos(x, y: (NodeName, PAliasDef)): int =
+    cmp(infos[x[0]].pos, infos[y[0]].pos)
+
+  unit.aliases.sort(cmpPos)
+
 proc check*(unit: PCompilationUnit): seq[string] =
   let c = PChecker(
     unit: unit,
@@ -211,6 +273,11 @@ proc check*(unit: PCompilationUnit): seq[string] =
     globalNodes: initTable[NodeName, NodeInfo](),
     globalInstances: initTable[InstanceName, InstanceInfo](),
   )
+  try:
+    sortAliases(unit)
+  except ContainsCycle:
+    c.error((filename: "???", lineno: -1), "alias statements form a cycle")
+    return c.messages
   c.checkComposites()
   c.checkNodes()
   c.checkAliases()
