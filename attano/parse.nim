@@ -21,8 +21,10 @@ var portWidths: OrderedTable[NodeName, int]
 var bindings: OrderedTable[NodeName, PExpr]
 var exprStack: seq[PExpr] = @[]
 
-proc reset(aUnit: PCompilationUnit = nil) =
-  unit = aUnit
+proc reset(theUnit: PCompilationUnit = nil, theFilename: string = "<unknown>") =
+  currentFilename = theFilename
+  currentLineno = 0
+  unit = theUnit
   composite = nil
   device = nil
   footprint = nil
@@ -181,32 +183,24 @@ proc parseFileInternal(filename: cstring) {.cdecl, header: "parser.h", importc: 
 
 proc parseStdin*(unit: PCompilationUnit) =
   ## Parse Attano directives from stdin and add them to `unit`.
-  reset(unit)
-  currentFilename = "<stdin>"
+  reset(unit, "<stdin>")
   parseStdinInternal()
   reset()
 
 proc parseFile*(unit: PCompilationUnit, filename: string) =
   ## Parse Attano directives from the given file and add them to `unit`.
-  reset(unit)
-  currentFilename = filename
+  reset(unit, filename)
   parseFileInternal(filename)
   reset()
 
 proc parseStdin*(): PCompilationUnit =
   ## Parse Attano directives from stdin and return a new PCompilationUnit
   ## containing them.
-  reset(newCompilationUnit())
-  currentFilename = "<stdin>"
-  parseStdinInternal()
-  result = unit
-  reset()
+  result = newCompilationUnit()
+  parseStdin(result)
 
 proc parseFile*(filename: string): PCompilationUnit =
   ## Parse Attano directives from the given file and return a new
   ## PCompilationUnit containing them.
-  reset(newCompilationUnit())
-  currentFilename = filename
-  parseFileInternal(filename)
-  result = unit
-  reset()
+  result = newCompilationUnit()
+  parseFile(result, filename)

@@ -9,4 +9,4 @@ bin           = @["attanoc"]
 # Dependencies
 
 requires "nim >= 0.14.0"
-
+requires "docopt >= 0.6"
