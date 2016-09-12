@@ -89,3 +89,11 @@ type
 
 proc `$`*(loc: Loc): string {.noSideEffect.} =
   "$1:$2" % [loc.filename, $loc.lineno]
+
+proc newCompilationUnit*(): PCompilationUnit not nil {.noSideEffect.} =
+  result.new()
+  result.composites = initOrderedTable[CompositeName, PCompositeDef]()
+  result.nodes = initOrderedTable[NodeName, PNodeDef]()
+  result.aliases = initOrderedTable[NodeName, PAliasDef]()
+  result.primitives = initOrderedTable[InstanceName, PPrimitiveDef]()
+  result.instances = initOrderedTable[InstanceName, PInstanceDef]()

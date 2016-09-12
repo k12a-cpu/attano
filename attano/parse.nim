@@ -21,13 +21,8 @@ var portWidths: OrderedTable[NodeName, int]
 var bindings: OrderedTable[NodeName, PExpr]
 var exprStack: seq[PExpr] = @[]
 
-proc reset() =
-  unit.new()
-  unit.composites = initOrderedTable[CompositeName, PCompositeDef]()
-  unit.nodes = initOrderedTable[NodeName, PNodeDef]()
-  unit.aliases = initOrderedTable[NodeName, PAliasDef]()
-  unit.primitives = initOrderedTable[InstanceName, PPrimitiveDef]()
-  unit.instances = initOrderedTable[InstanceName, PInstanceDef]()
+proc reset(aUnit: PCompilationUnit = nil) =
+  unit = aUnit
   composite = nil
   device = nil
   footprint = nil
@@ -184,15 +179,33 @@ proc doExprSlice(upperBound, lowerBound: uint64) {.cdecl, exportc: "attano_yy_ex
 proc parseStdinInternal() {.cdecl, header: "parser.h", importc: "attano_parse_stdin".}
 proc parseFileInternal(filename: cstring) {.cdecl, header: "parser.h", importc: "attano_parse_file".}
 
-proc parseStdin*(): PCompilationUnit =
+proc parseStdin*(unit: PCompilationUnit) =
+  ## Parse Attano directives from stdin and add them to `unit`.
+  reset(unit)
+  currentFilename = "<stdin>"
+  parseStdinInternal()
   reset()
+
+proc parseFile*(unit: PCompilationUnit, filename: string) =
+  ## Parse Attano directives from the given file and add them to `unit`.
+  reset(unit)
+  currentFilename = filename
+  parseFileInternal(filename)
+  reset()
+
+proc parseStdin*(): PCompilationUnit =
+  ## Parse Attano directives from stdin and return a new PCompilationUnit
+  ## containing them.
+  reset(newCompilationUnit())
   currentFilename = "<stdin>"
   parseStdinInternal()
   result = unit
   reset()
 
 proc parseFile*(filename: string): PCompilationUnit =
-  reset()
+  ## Parse Attano directives from the given file and return a new
+  ## PCompilationUnit containing them.
+  reset(newCompilationUnit())
   currentFilename = filename
   parseFileInternal(filename)
   result = unit
