@@ -2,10 +2,10 @@ from tables import pairs, values
 import ropes
 import types
 
-proc rope*(loc: Loc): Rope =
+proc rope(loc: Loc): Rope =
   rope($loc)
 
-proc rope*(e: PExpr): Rope =
+proc rope(e: PExpr): Rope =
   case e.kind
   of exprNodeRef:
     result = rope(e.node)
@@ -38,7 +38,7 @@ proc rope*(e: PExpr): Rope =
       rope("]"),
     ]
 
-proc rope*(nodeDef: PNodeDef, indent: Rope = nil): Rope =
+proc rope(nodeDef: PNodeDef, indent: Rope = nil): Rope =
   &[
     indent,
     rope("node "),
@@ -48,7 +48,7 @@ proc rope*(nodeDef: PNodeDef, indent: Rope = nil): Rope =
     rope("];\n"),
   ]
 
-proc rope*(aliasDef: PAliasDef, indent: Rope = nil): Rope =
+proc rope(aliasDef: PAliasDef, indent: Rope = nil): Rope =
   &[
     indent,
     rope("alias "),
@@ -58,7 +58,7 @@ proc rope*(aliasDef: PAliasDef, indent: Rope = nil): Rope =
     rope(";\n")
   ]
 
-proc rope*(primitiveDef: PPrimitiveDef, indent: Rope = nil): Rope =
+proc rope(primitiveDef: PPrimitiveDef, indent: Rope = nil): Rope =
   result = &[
     indent,
     rope("primitive "),

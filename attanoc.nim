@@ -2,6 +2,7 @@ import docopt
 
 import attano.parse
 import attano.stringify
+import attano.svgen
 import attano.passes.check
 import attano.passes.expandinstances
 import attano.passes.dereference
@@ -16,6 +17,14 @@ Usage:
 
 Options:
   -h, --help                          Print this help text.
+  -O OP, --operation OP               Operation to perform; see the Operations
+                                      section for a list of possibilities.
+                                      [default: attano]
+
+Operations:
+  attano                              Print the AST in Attano format after
+                                      transformations have been applied.
+  sv                                  Generate a SystemVerilog module.
 """
 
 let args = docopt(doc)
@@ -40,4 +49,12 @@ assert len(check(unit)) == 0
 flattenNodes(unit)
 assert len(check(unit)) == 0
 
-echo $unit
+case $args["--operation"]
+of "attano":
+  echo $unit
+of "sv":
+  echo unit.toSV()
+else:
+  echo "error: invalid operation."
+  echo "See --help for valid choices."
+  quit(1)
