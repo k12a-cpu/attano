@@ -20,6 +20,10 @@ Options:
   -O OP, --operation OP               Operation to perform; see the Operations
                                       section for a list of possibilities.
                                       [default: attano]
+  -p FILENAME, --preamble FILENAME    Filename of a file to be prepended to
+                                      SystemVerilog output, containing the
+                                      'module' header and any extra parameter/
+                                      port/node declarations.
 
 Operations:
   attano                              Print the AST in Attano format after
@@ -53,7 +57,12 @@ case $args["--operation"]
 of "attano":
   echo $unit
 of "sv":
-  echo unit.toSV()
+  let preamble =
+    if args["--preamble"]:
+      readFile($args["--preamble"])
+    else:
+      ""
+  echo unit.toSV(preamble)
 else:
   echo "error: invalid operation."
   echo "See --help for valid choices."

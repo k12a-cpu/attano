@@ -103,5 +103,8 @@ proc rope(unit: PCompilationUnit): Rope =
   for primitiveDef in unit.primitives.values():
     result = result & rope(primitiveDef)
 
-proc toSV*(unit: PCompilationUnit): string =
-  $rope(unit)
+proc toSV*(unit: PCompilationUnit, preamble: string): string =
+  if preamble.isNil or preamble.len == 0:
+    $rope(unit)
+  else:
+    $(rope(preamble) & rope("\n") & rope(unit) & rope("\nendmodule\n"))
