@@ -1,7 +1,15 @@
 from tables import pairs, values
-from strutils import toHex
+from strutils import split, toHex
 import ropes
 import types
+import tables
+
+type
+  DeviceSpec = object
+    module: string
+    ports: seq[string]
+
+include svdevices
 
 proc normalise(s: string): string {.noSideEffect.} =
   const wordChars = {'A' .. 'Z'} + {'a' .. 'z'} + {'0' .. '9'} + {'_'}
@@ -65,10 +73,10 @@ proc rope(nodeDef: PNodeDef): Rope =
   result = &[result, rope(normalise(nodeDef.name)), rope(";\n")]
 
 proc rope(primitiveDef: PPrimitiveDef): Rope =
-  let moduleName = rope("ic") & rope(primitiveDef.device)
+  let spec = devices[primitiveDef.device]
 
   result = &[
-    moduleName,
+    rope(spec.module),
     rope(" "),
     rope(normalise(primitiveDef.name)),
     rope("("),
@@ -81,8 +89,8 @@ proc rope(primitiveDef: PPrimitiveDef): Rope =
       result = result & rope(",")
     result = &[
       result,
-      rope("\n  .pin"),
-      rope(pin),
+      rope("\n  ."),
+      rope(spec.ports[pin-1]),
       rope("("),
       rope(exp),
       rope(")"),
